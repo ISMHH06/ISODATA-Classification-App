@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="dashboard-header">
+    <h1>Model Performance Dashboard</h1>
+</div>
+
+<div class="metrics-grid">
+
+    <div class="metric-card">
+        <h2>4</h2>
+        <p>Clusters</p>
+    </div>
+    <div class="metric-card">
+        <h2>0.67</h2>
+        <p>Silhouette</p>
+    </div>
+
+    <div class="metric-card">
+        <h2>0.54</h2>
+        <p>Davies-Bouldin</p>
+    </div>
+
+    <div class="metric-card">
+        <h2>3120</h2>
+        <p>Calinski</p>
+    </div>
+
+</div>
+<div class="chart-section">
+    <div class="chart-card large-card">
+        <h3>PCA Cluster Visualization</h3>
+
+        <img src="{{ url_for('static', path='images/pca.png') }}" alt="PCA">
+    </div>
+</div>
+
+<div class="cluster-grid">
+
+    <div class="cluster-card">
+        <h3>Cluster 1</h3>
+        <p>Active Buyers</p>
+    </div>
+
+    <div class="cluster-card">
+        <h3>Cluster 2</h3>
+        <p>Low Engagement</p>
+    </div>
+
+    <div class="cluster-card">
+        <h3>Cluster 3</h3>
+        <p>Frequent Users</p>
+    </div>
+
+</div>
+
+{% endblock %}

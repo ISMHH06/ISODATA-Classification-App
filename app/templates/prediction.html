@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1>Customer Prediction</h1>
+    <p>Predict customer segment using ISODATA.</p>
+</div>
+
+<div class="prediction-layout">
+
+    <div class="glass-card">
+
+        <h2>Input Features</h2>
+
+        <form>
+
+            <input type="text" placeholder="Balance">
+
+            <input type="text" placeholder="Purchases">
+
+            <input type="text" placeholder="Credit Limit">
+
+            <input type="text" placeholder="Payments">
+
+            <button class="primary-btn">
+                Predict Cluster
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="glass-card">
+
+        <h2>Prediction Result</h2>
+
+        <div class="result-box">
+
+            <h3>Cluster 1</h3>
+
+            <p>Active Buyers</p>
+
+            <p>
+                Recommendation:
+                Offer loyalty rewards and premium services.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

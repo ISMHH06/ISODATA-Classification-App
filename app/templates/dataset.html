@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1>Dataset & Analysis</h1>
+    <p>Upload and analyze customer data before clustering.</p>
+</div>
+
+<div class="upload-box">
+    <h2>Upload CSV Dataset</h2>
+
+    <div class="drop-zone">
+        Drag & Drop CSV Here
+    </div>
+
+    <button class="primary-btn">Choose File</button>
+</div>
+
+<div class="metrics-grid">
+
+    <div class="metric-card">
+        <h2>8950</h2>
+        <p>Customers</p>
+    </div>
+
+    <div class="metric-card">
+        <h2>18</h2>
+        <p>Features</p>
+    </div>
+
+    <div class="metric-card">
+        <h2>314</h2>
+        <p>Missing Values</p>
+    </div>
+
+    <div class="metric-card">
+        <h2>0</h2>
+        <p>Duplicates</p>
+    </div>
+
+</div>
+
+<div class="chart-section">
+
+    <div class="chart-card">
+        <h3>Purchase Distribution</h3>
+    </div>
+
+    <div class="chart-card">
+        <h3>Balance Distribution</h3>
+    </div>
+
+    <div class="chart-card large-card">
+        <h3>Correlation Heatmap</h3>
+    </div>
+
+</div>
+
+{% endblock %}
