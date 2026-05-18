@@ -7,6 +7,6 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/export")
 def export_page(request: Request):
     return templates.TemplateResponse(
-        "export.html",
-        {"request": request}
+        request=request,
+        name="export.html"
     )

@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISODATA LAB</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
-
+<link rel="stylesheet" href="{{ request.url_for('static', path='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
@@ -14,11 +13,11 @@
 <div class="sidebar">
     <div class="logo">ISODATA_LAB</div>
 
-    <a href="/">Home</a>
-    <a href="/dataset">Dataset & Analysis</a>
-    <a href="/dashboard">Dashboard</a>
-    <a href="/prediction">Prediction</a>
-    <a href="/export">Export</a>
+    <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">Home</a>
+    <a href="/dataset" class="{% if request.url.path == '/dataset' %}active{% endif %}">Dataset & Analysis</a>
+    <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="/prediction" class="{% if request.url.path == '/prediction' %}active{% endif %}">Prediction</a>
+    <a href="/export" class="{% if request.url.path == '/export' %}active{% endif %}">Export</a>
 </div>
 
 <div class="main-content">

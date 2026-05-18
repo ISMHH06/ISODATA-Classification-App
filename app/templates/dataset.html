@@ -1,60 +1,82 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
+<main class="page-content">
 
-<div class="page-header">
-    <h1>Dataset & Analysis</h1>
-    <p>Upload and analyze customer data before clustering.</p>
-</div>
-
-<div class="upload-box">
-    <h2>Upload CSV Dataset</h2>
-
-    <div class="drop-zone">
-        Drag & Drop CSV Here
+    <div class="page-header">
+        <h1>Dataset & Analysis</h1>
+        <p>Upload your dataset or choose demo data to begin customer segmentation analysis with a consistent look and feel.</p>
     </div>
 
-    <button class="primary-btn">Choose File</button>
-</div>
+    <div class="grid-layout">
 
-<div class="metrics-grid">
+        <section class="glass-card upload-card">
+            <div class="upload-header">
+                <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+                <h2>Initialize Data Ingestion</h2>
+            </div>
+            <p class="text-muted">Drop a CSV dataset here to begin customer segmentation analysis.</p>
+            <div class="button-row">
+                <button class="primary-btn">Browse CSV</button>
+                <button class="secondary-btn">Load Demo</button>
+            </div>
+        </section>
 
-    <div class="metric-card">
-        <h2>8950</h2>
-        <p>Customers</p>
+        <section class="glass-card parameter-box">
+            <h3>ISODATA Parameters</h3>
+            <div class="parameter-row">
+                <span>Min Cluster Size</span>
+                <strong>50</strong>
+            </div>
+            <div class="progress-bar"><span class="progress-fill" style="width: 33%"></span></div>
+
+            <div class="parameter-row">
+                <span>Max Variance</span>
+                <strong>0.85</strong>
+            </div>
+            <div class="progress-bar"><span class="progress-fill" style="width: 75%"></span></div>
+
+            <div class="toggle-row">
+                <div class="toggle-pill active">Auto Merge</div>
+                <div class="toggle-pill">Normalize</div>
+            </div>
+        </section>
+
     </div>
 
-    <div class="metric-card">
-        <h2>18</h2>
-        <p>Features</p>
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h2>8950</h2>
+            <p>Customers</p>
+        </div>
+        <div class="metric-card">
+            <h2>18</h2>
+            <p>Features</p>
+        </div>
+        <div class="metric-card">
+            <h2>314</h2>
+            <p>Missing Values</p>
+        </div>
+        <div class="metric-card">
+            <h2>0</h2>
+            <p>Duplicates</p>
+        </div>
     </div>
 
-    <div class="metric-card">
-        <h2>314</h2>
-        <p>Missing Values</p>
+    <div class="chart-section">
+        <div class="chart-card">
+            <h3>Purchase Distribution</h3>
+            <div class="placeholder">Chart placeholder</div>
+        </div>
+        <div class="chart-card">
+            <h3>Balance Distribution</h3>
+            <div class="placeholder">Chart placeholder</div>
+        </div>
+        <div class="chart-card large-card">
+            <h3>Correlation Heatmap</h3>
+            <div class="placeholder">Heatmap placeholder</div>
+        </div>
     </div>
 
-    <div class="metric-card">
-        <h2>0</h2>
-        <p>Duplicates</p>
-    </div>
-
-</div>
-
-<div class="chart-section">
-
-    <div class="chart-card">
-        <h3>Purchase Distribution</h3>
-    </div>
-
-    <div class="chart-card">
-        <h3>Balance Distribution</h3>
-    </div>
-
-    <div class="chart-card large-card">
-        <h3>Correlation Heatmap</h3>
-    </div>
-
-</div>
-
+</main>
 {% endblock %}

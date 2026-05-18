@@ -6,6 +6,7 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+
 app.include_router(home.router)
 app.include_router(dataset.router)
 app.include_router(dashboard.router)

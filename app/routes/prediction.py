@@ -7,6 +7,6 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/prediction")
 def prediction_page(request: Request):
     return templates.TemplateResponse(
-        "prediction.html",
-        {"request": request}
+        request=request,
+        name="prediction.html"
     )
