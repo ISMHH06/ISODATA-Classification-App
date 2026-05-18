@@ -8,7 +8,7 @@
         <p>Upload your dataset or choose demo data to begin customer segmentation analysis with a consistent look and feel.</p>
     </div>
 
-    <div class="grid-layout">
+    <div class="grid-layout single">
 
         <section class="glass-card upload-card">
             <div class="upload-header">
@@ -22,26 +22,6 @@
             </div>
             <input id="dataset-file" type="file" accept=".csv" class="hidden-input">
             <p class="text-muted" id="file-status">No file selected.</p>
-        </section>
-
-        <section class="glass-card parameter-box">
-            <h3>ISODATA Parameters</h3>
-            <div class="parameter-row">
-                <span>Min Cluster Size</span>
-                <strong id="param-min-cluster">{{ hyperparams.get("min_cluster_size", "-") }}</strong>
-            </div>
-            <div class="progress-bar"><span class="progress-fill" style="width: 33%"></span></div>
-
-            <div class="parameter-row">
-                <span>Max Variance</span>
-                <strong id="param-split">{{ hyperparams.get("split_std_threshold", "-") }}</strong>
-            </div>
-            <div class="progress-bar"><span class="progress-fill" style="width: 75%"></span></div>
-
-            <div class="toggle-row">
-                <div class="toggle-pill active">Auto Merge</div>
-                <div class="toggle-pill">Normalize</div>
-            </div>
         </section>
 
     </div>
@@ -65,22 +45,63 @@
         </div>
     </div>
 
-    <div class="chart-section">
-        <div class="chart-card">
-            <h3>Purchase Distribution</h3>
-            <div class="placeholder">Chart placeholder</div>
+    <section class="analysis-section">
+        <div class="analysis-header">
+            <h2>Visual Analysis</h2>
+            <p class="text-muted">Auto-generated from the latest uploaded dataset.</p>
         </div>
-        <div class="chart-card">
-            <h3>Balance Distribution</h3>
-            <div class="placeholder">Chart placeholder</div>
+
+        <div class="analysis-grid">
+            <article class="analysis-card analysis-heatmap">
+                <div class="analysis-title">
+                    <h3>Correlation Heatmap</h3>
+                    <span class="chip">Top numeric columns</span>
+                </div>
+                <div class="heatmap-shell" id="analysis-heatmap">
+                    <div class="placeholder">Upload a dataset to see the heatmap.</div>
+                </div>
+                <div class="heatmap-legend">
+                    <span>-1</span>
+                    <div class="heatmap-scale"></div>
+                    <span>+1</span>
+                </div>
+            </article>
+
+            <article class="analysis-card">
+                <div class="analysis-title">
+                    <h3 id="dist-title-1">Distribution</h3>
+                    <span class="chip">Histogram</span>
+                </div>
+                <div class="bar-shell" id="dist-chart-1">
+                    <div class="placeholder">Upload a dataset to see this chart.</div>
+                </div>
+            </article>
+
+            <article class="analysis-card">
+                <div class="analysis-title">
+                    <h3 id="dist-title-2">Distribution</h3>
+                    <span class="chip">Histogram</span>
+                </div>
+                <div class="bar-shell" id="dist-chart-2">
+                    <div class="placeholder">Upload a dataset to see this chart.</div>
+                </div>
+            </article>
+
+            <article class="analysis-card analysis-columns">
+                <div class="analysis-title">
+                    <h3>Column Preview</h3>
+                    <span class="chip">First 12 columns</span>
+                </div>
+                <div class="column-chips" id="column-chips"></div>
+            </article>
         </div>
-        <div class="chart-card large-card">
-            <h3>Correlation Heatmap</h3>
-            <div class="placeholder">Heatmap placeholder</div>
-        </div>
-    </div>
+    </section>
 
 </main>
+
+<script id="init-summary-data" type="application/json">
+{{ dataset_summary | tojson }}
+</script>
 
 <script>
 (() => {
@@ -91,6 +112,22 @@
     const featuresEl = document.getElementById("metric-features");
     const missingEl = document.getElementById("metric-missing");
     const duplicatesEl = document.getElementById("metric-duplicates");
+    const distTitle1 = document.getElementById("dist-title-1");
+    const distTitle2 = document.getElementById("dist-title-2");
+    const distChart1 = document.getElementById("dist-chart-1");
+    const distChart2 = document.getElementById("dist-chart-2");
+    const heatmap = document.getElementById("analysis-heatmap");
+    const columnChips = document.getElementById("column-chips");
+    
+    let initialSummary = null;
+    try {
+        const rawText = document.getElementById("init-summary-data").textContent;
+        if (rawText && rawText.trim() !== "null") {
+            initialSummary = JSON.parse(rawText);
+        }
+    } catch(e) {
+        console.warn("No initial summary matched.");
+    }
 
     const openPicker = () => fileInput.click();
 
@@ -127,6 +164,159 @@
         if (duplicatesEl) {
             duplicatesEl.textContent = summary.duplicate_rows ?? "-";
         }
+        if (status && summary.dataset) {
+            status.textContent = `Summary loaded for ${summary.dataset}`;
+            status.style.color = "#94a3c5";
+        }
+        renderVisuals(summary);
+    };
+
+    const formatLabel = (label, max = 12) => {
+        if (!label) {
+            return "";
+        }
+        return label.length > max ? `${label.slice(0, max - 1)}...` : label;
+    };
+
+    const renderBarChart = (target, titleEl, columnName, counts, bins) => {
+        if (!target) {
+            return;
+        }
+        target.innerHTML = "";
+        if (!counts || counts.length === 0) {
+            target.innerHTML = '<div class="placeholder">Upload a dataset to see this chart.</div>';
+            return;
+        }
+        if (titleEl && columnName) {
+            titleEl.textContent = `${columnName} Distribution`;
+        }
+        const chart = document.createElement("div");
+        chart.className = "bar-chart";
+        const max = Math.max(...counts, 1);
+        counts.forEach((count, index) => {
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            bar.style.height = `${Math.round((count / max) * 100)}%`;
+            if (bins && bins.length > index + 1) {
+                const start = bins[index];
+                const end = bins[index + 1];
+                bar.title = `${columnName}: ${start.toFixed(2)} - ${end.toFixed(2)} (count ${count})`;
+            } else {
+                bar.title = `${columnName}: count ${count}`;
+            }
+            chart.appendChild(bar);
+        });
+        target.appendChild(chart);
+
+        if (bins && bins.length >= 2) {
+            const axis = document.createElement("div");
+            axis.className = "bar-axis";
+            const minLabel = document.createElement("span");
+            minLabel.textContent = `min ${bins[0].toFixed(2)}`;
+            const maxLabel = document.createElement("span");
+            maxLabel.textContent = `max ${bins[bins.length - 1].toFixed(2)}`;
+            axis.appendChild(minLabel);
+            axis.appendChild(maxLabel);
+            target.appendChild(axis);
+        }
+    };
+
+    const corrColor = (value) => {
+        const intensity = Math.min(Math.abs(value), 1);
+        if (value >= 0) {
+            return `rgba(78, 242, 232, ${0.15 + intensity * 0.75})`;
+        }
+        return `rgba(255, 122, 97, ${0.15 + intensity * 0.75})`;
+    };
+
+    const renderHeatmap = (target, correlation) => {
+        if (!target) {
+            return;
+        }
+        if (!correlation || !correlation.columns || !correlation.matrix) {
+            target.innerHTML = '<div class="placeholder">Upload a dataset to see the heatmap.</div>';
+            return;
+        }
+        const columns = correlation.columns;
+        const matrix = correlation.matrix;
+        target.innerHTML = "";
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "heatmap-wrapper";
+        wrapper.style.gridTemplateColumns = `120px repeat(${columns.length}, minmax(0, 1fr))`;
+        wrapper.style.gridTemplateRows = `120px repeat(${columns.length}, minmax(0, 1fr))`;
+
+        columns.forEach((label, i) => {
+            const item = document.createElement("div");
+            item.className = "heatmap-label-top";
+            item.textContent = formatLabel(label, 12);
+            item.title = label;
+            item.style.gridRow = "1";
+            item.style.gridColumn = `${i + 2}`;
+            wrapper.appendChild(item);
+        });
+
+        columns.forEach((label, i) => {
+            const item = document.createElement("div");
+            item.className = "heatmap-label-side";
+            item.textContent = formatLabel(label, 14);
+            item.title = label;
+            item.style.gridColumn = "1";
+            item.style.gridRow = `${i + 2}`;
+            wrapper.appendChild(item);
+        });
+
+        matrix.forEach((row, rowIndex) => {
+            row.forEach((value, colIndex) => {
+                const cell = document.createElement("div");
+                cell.className = "heatmap-cell";
+                cell.style.gridRow = `${rowIndex + 2}`;
+                cell.style.gridColumn = `${colIndex + 2}`;
+                cell.style.background = corrColor(value);
+                const label = document.createElement("span");
+                const valueText = value.toFixed ? value.toFixed(2) : value;
+                label.textContent = valueText;
+                const rowName = columns[rowIndex] || "";
+                const colName = columns[colIndex] || "";
+                cell.title = `${rowName} vs ${colName}: ${valueText}`;
+                cell.appendChild(label);
+                wrapper.appendChild(cell);
+            });
+        });
+
+        target.appendChild(wrapper);
+    };
+
+    const renderColumns = (summary) => {
+        if (!columnChips) {
+            return;
+        }
+        const columns = summary.column_names || summary.feature_columns || [];
+        if (!columns.length) {
+            columnChips.innerHTML = '<span class="text-muted">No columns found.</span>';
+            return;
+        }
+        columnChips.innerHTML = "";
+        columns.slice(0, 12).forEach((column) => {
+            const chip = document.createElement("span");
+            chip.className = "chip";
+            chip.textContent = column;
+            chip.title = column;
+            columnChips.appendChild(chip);
+        });
+    };
+
+    const renderVisuals = (summary) => {
+        renderHeatmap(heatmap, summary.correlation);
+        const distributions = summary.distributions || {};
+        const [first, second] = distributions.columns || [];
+        if (first && distributions.counts && distributions.counts[first]) {
+            renderBarChart(distChart1, distTitle1, first, distributions.counts[first], distributions.bins?.[first]);
+        }
+        if (second && distributions.counts && distributions.counts[second]) {
+            renderBarChart(distChart2, distTitle2, second, distributions.counts[second], distributions.bins?.[second]);
+        }
+        renderColumns(summary);
     };
 
     fileInput.addEventListener("change", async () => {
@@ -151,6 +341,10 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("upload") === "1") {
         setTimeout(openPicker, 100);
+    }
+
+    if (initialSummary && Object.keys(initialSummary).length > 0) {
+        applySummary(initialSummary);
     }
 })();
 </script>

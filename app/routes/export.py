@@ -19,7 +19,7 @@ def export_page(request: Request):
         "request": request,
         "metadata": metadata,
     }
-    return templates.TemplateResponse(name="export.html", context=context)
+    return templates.TemplateResponse(request=request, name="export.html", context=context)
 
 
 @router.get("/export/metadata.json")

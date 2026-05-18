@@ -4,7 +4,7 @@ from typing import Any, Dict, Tuple
 import math
 import pandas as pd
 
-from models.model_loader import ModelStore
+from isodata_api.models.model_loader import ModelStore
 
 RAW_FEATURES = [
     "BALANCE",
@@ -106,6 +106,19 @@ def run_pipeline(client_data: Dict[str, Any], store: ModelStore) -> Dict[str, An
     if not store.model_loaded:
         raise RuntimeError("Model not loaded")
 
+    if (
+        store.scaler is None
+        or store.pca_cluster is None
+        or store.pca_2d is None
+        or store.iso_model is None
+    ):
+        raise RuntimeError("Model artifacts not loaded")
+
+    scaler = store.scaler
+    pca_cluster = store.pca_cluster
+    pca_2d = store.pca_2d
+    iso_model = store.iso_model
+
     missing = [
         feature
         for feature in RAW_FEATURES
@@ -133,20 +146,20 @@ def run_pipeline(client_data: Dict[str, Any], store: ModelStore) -> Dict[str, An
 
     df = df.drop(columns=DROP_COLUMNS)
 
-    if not store.feature_columns:
+    feature_columns = store.feature_columns
+    if not feature_columns:
         raise RuntimeError("Feature columns not loaded")
 
-    ordered = df[store.feature_columns]
+    ordered = df[feature_columns]
     features = ordered.to_numpy()
 
-    scaled = store.scaler.transform(features)
-    cluster_space = store.pca_cluster.transform(scaled)
-    cluster_id = int(store.iso_model.predict(cluster_space)[0])
+    scaled = scaler.transform(features)
+    cluster_space = pca_cluster.transform(scaled)
+    cluster_id = int(iso_model.predict(cluster_space)[0])
 
-    coords = store.pca_2d.transform(scaled)[0]
-    profile = {}
-    if store.cluster_profiles:
-        profile = store.cluster_profiles.get(str(cluster_id)) or store.cluster_profiles.get(cluster_id) or {}
+    coords = pca_2d.transform(scaled)[0]
+    cluster_profiles = store.cluster_profiles or {}
+    profile = cluster_profiles.get(str(cluster_id), {})
 
     return {
         "segment_id": cluster_id,

@@ -7,8 +7,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from models.model_loader import load_model_store
-from routers.predict import router as predict_router
+from isodata_api.models.model_loader import load_model_store
+from isodata_api.routers.predict import router as predict_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

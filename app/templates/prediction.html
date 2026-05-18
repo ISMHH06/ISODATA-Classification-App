@@ -15,76 +15,20 @@
 
         <form id="prediction-form">
             <div class="field-grid">
-                <label>
-                    Balance
-                    <input type="number" step="any" name="BALANCE" placeholder="0.0" required>
-                </label>
-                <label>
-                    Balance Frequency
-                    <input type="number" step="any" name="BALANCE_FREQUENCY" placeholder="0.0" required>
-                </label>
-                <label>
-                    Purchases
-                    <input type="number" step="any" name="PURCHASES" placeholder="0.0" required>
-                </label>
-                <label>
-                    One-Off Purchases
-                    <input type="number" step="any" name="ONEOFF_PURCHASES" placeholder="0.0" required>
-                </label>
-                <label>
-                    Installments Purchases
-                    <input type="number" step="any" name="INSTALLMENTS_PURCHASES" placeholder="0.0" required>
-                </label>
-                <label>
-                    Cash Advance
-                    <input type="number" step="any" name="CASH_ADVANCE" placeholder="0.0" required>
-                </label>
-                <label>
-                    Purchases Frequency
-                    <input type="number" step="any" name="PURCHASES_FREQUENCY" placeholder="0.0" required>
-                </label>
-                <label>
-                    One-Off Purchases Frequency
-                    <input type="number" step="any" name="ONEOFF_PURCHASES_FREQUENCY" placeholder="0.0" required>
-                </label>
-                <label>
-                    Purchases Installments Frequency
-                    <input type="number" step="any" name="PURCHASES_INSTALLMENTS_FREQUENCY" placeholder="0.0" required>
-                </label>
-                <label>
-                    Cash Advance Frequency
-                    <input type="number" step="any" name="CASH_ADVANCE_FREQUENCY" placeholder="0.0" required>
-                </label>
-                <label>
-                    Cash Advance Transactions
-                    <input type="number" step="1" name="CASH_ADVANCE_TRX" placeholder="0" required>
-                </label>
-                <label>
-                    Purchases Transactions
-                    <input type="number" step="any" name="PURCHASES_TRX" placeholder="0" required>
-                </label>
-                <label>
-                    Credit Limit (optional)
-                    <input type="number" step="any" name="CREDIT_LIMIT" placeholder="5000">
-                </label>
-                <label>
-                    Payments
-                    <input type="number" step="any" name="PAYMENTS" placeholder="0.0" required>
-                </label>
-                <label>
-                    Minimum Payments (optional)
-                    <input type="number" step="any" name="MINIMUM_PAYMENTS" placeholder="200">
-                </label>
-                <label>
-                    Percent Full Payment
-                    <input type="number" step="any" name="PRC_FULL_PAYMENT" placeholder="0.0" required>
-                </label>
-                <label>
-                    Tenure (months)
-                    <input type="number" step="1" name="TENURE" placeholder="12" required>
-                </label>
+                {% if feature_columns %}
+                    {% for col in feature_columns %}
+                        {% if col.upper() != "CUST_ID" and col.upper() != "ID" %}
+                        <label>
+                            {{ col.replace('_', ' ').title() }}
+                            <input type="number" step="any" name="{{ col }}" placeholder="0.0" required>
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted" style="grid-column: 1 / -1;">No dataset available. Please upload a dataset or train a model to load features.</p>
+                {% endif %}
             </div>
-            <button class="primary-btn" type="submit">
+            <button class="primary-btn" type="submit" {% if not feature_columns %}disabled{% endif %}>
                 Predict Cluster
             </button>
             <p id="prediction-error" class="form-error" role="alert"></p>
@@ -109,24 +53,6 @@
     const form = document.getElementById("prediction-form");
     const result = document.getElementById("prediction-result");
     const error = document.getElementById("prediction-error");
-    const requiredFields = [
-        "BALANCE",
-        "BALANCE_FREQUENCY",
-        "PURCHASES",
-        "ONEOFF_PURCHASES",
-        "INSTALLMENTS_PURCHASES",
-        "CASH_ADVANCE",
-        "PURCHASES_FREQUENCY",
-        "ONEOFF_PURCHASES_FREQUENCY",
-        "PURCHASES_INSTALLMENTS_FREQUENCY",
-        "CASH_ADVANCE_FREQUENCY",
-        "CASH_ADVANCE_TRX",
-        "PURCHASES_TRX",
-        "PAYMENTS",
-        "PRC_FULL_PAYMENT",
-        "TENURE"
-    ];
-    const optionalFields = ["CREDIT_LIMIT", "MINIMUM_PAYMENTS"];
 
     const toNumber = (value) => {
         if (value === "") {
@@ -165,7 +91,7 @@
             const name = input.name;
             const value = toNumber(input.value.trim());
             if (value === null) {
-                if (requiredFields.includes(name)) {
+                if (input.required) {
                     missing.push(name);
                 }
                 return;

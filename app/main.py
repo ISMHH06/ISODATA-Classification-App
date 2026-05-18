@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,13 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.routes import dashboard, dataset, export, home, prediction
+from isodata_api.models.model_loader import load_model_store
+from isodata_api.routers.predict import router as predict_router
 
 API_DIR = Path(__file__).resolve().parents[1] / "isodata_api"
-if str(API_DIR) not in sys.path:
-	sys.path.append(str(API_DIR))
-
-from models.model_loader import load_model_store
-from routers.predict import router as predict_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

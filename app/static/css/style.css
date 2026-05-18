@@ -79,6 +79,10 @@ body::before{
     gap:24px;
 }
 
+.grid-layout.single{
+    grid-template-columns:1fr;
+}
+
 .upload-card,
 .parameter-box{
     border-radius:24px;
@@ -211,6 +215,193 @@ body::before{
     border-radius:18px;
 }
 
+.chart-body{
+    min-height:220px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.analysis-section{
+    margin-top:40px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.analysis-header h2{
+    font-size:32px;
+    color:#4ef2e8;
+    margin-bottom:8px;
+}
+
+.analysis-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:24px;
+}
+
+.analysis-card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:24px;
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.analysis-card.analysis-heatmap,
+.analysis-card.analysis-columns{
+    grid-column:span 2;
+}
+
+.analysis-title{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+}
+
+.analysis-title h3{
+    color:#4ef2e8;
+    font-size:20px;
+}
+
+.chip{
+    padding:6px 12px;
+    border-radius:999px;
+    background:rgba(78,242,232,0.12);
+    border:1px solid rgba(78,242,232,0.4);
+    color:#4ef2e8;
+    font-size:11px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+}
+
+.column-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.heatmap-shell,
+.bar-shell{
+    min-height:260px;
+    border-radius:18px;
+    background:rgba(255,255,255,0.03);
+    padding:18px;
+    display:block;
+    overflow:auto;
+}
+
+.bar-shell{
+    min-height:220px;
+}
+
+.bar-chart{
+    width:100%;
+    height:200px;
+    display:flex;
+    align-items:flex-end;
+    gap:8px;
+}
+
+.bar{
+    flex:1;
+    background:linear-gradient(180deg, rgba(78,242,232,0.9), rgba(78,242,232,0.2));
+    border-radius:8px 8px 4px 4px;
+    box-shadow:0 8px 20px rgba(78,242,232,0.15);
+    position:relative;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+}
+
+.bar-value{
+    font-size:10px;
+    color:#07111f;
+    font-weight:700;
+    padding-bottom:6px;
+    text-shadow:0 1px 4px rgba(78,242,232,0.4);
+}
+
+.bar-axis{
+    display:flex;
+    justify-content:space-between;
+    margin-top:10px;
+    color:#94a3c5;
+    font-size:12px;
+}
+
+.heatmap-wrapper{
+    width:100%;
+    min-width: 800px;
+    display:grid;
+    gap:4px;
+    align-items:stretch;
+}
+
+.heatmap-label-top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:flex-start; /* Align text start to match the left rotation origin */
+    color:#94a3c5;
+    font-size:11px;
+    padding-bottom: 10px;
+    white-space: nowrap;
+    transform: rotate(-45deg) translate(15px, 0px); /* Push it a bit down/right to center it */
+    transform-origin: left bottom;
+}
+
+.heatmap-label-side{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    color:#94a3c5;
+    font-size:10px;
+    text-align: right;
+    padding-right: 15px;
+}
+
+.heatmap-cell{
+    position:relative;
+    width:100%;
+    height:100%;
+    aspect-ratio: 1 / 1;
+    border-radius:8px;
+    overflow:hidden;
+}
+
+.heatmap-cell span{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    color:#07111f;
+    font-weight:600;
+}
+
+.heatmap-legend{
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:10px;
+    color:#94a3c5;
+    font-size:12px;
+}
+
+.heatmap-scale{
+    width:140px;
+    height:10px;
+    border-radius:999px;
+    background:linear-gradient(90deg, rgba(255,122,97,0.85), rgba(78,242,232,0.85));
+    box-shadow:0 0 10px rgba(78,242,232,0.25);
+}
+
 .large-card{
     grid-column:span 2;
 }
@@ -220,6 +411,13 @@ body::before{
         grid-template-columns:1fr;
     }
     .large-card{
+        grid-column:span 1;
+    }
+    .analysis-grid{
+        grid-template-columns:1fr;
+    }
+    .analysis-card.analysis-heatmap,
+    .analysis-card.analysis-columns{
         grid-column:span 1;
     }
 }

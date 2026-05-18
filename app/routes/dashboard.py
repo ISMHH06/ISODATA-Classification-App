@@ -29,4 +29,4 @@ def dashboard_page(request: Request):
         "n_samples": n_samples,
         "clusters": clusters,
     }
-    return templates.TemplateResponse(name="dashboard.html", context=context)
+    return templates.TemplateResponse(request=request, name="dashboard.html", context=context)

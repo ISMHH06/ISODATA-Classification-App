@@ -11,7 +11,7 @@ import numpy as np
 import joblib
 from fastapi import Request
 
-from models.isodata import ISODATA
+from isodata_api.models.isodata import ISODATA
 
 logger = logging.getLogger(__name__)
 

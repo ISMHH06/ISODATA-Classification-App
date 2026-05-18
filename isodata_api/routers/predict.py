@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from app.utils.dataset_store import load_dataset_summary
 from fastapi.responses import JSONResponse
 
-from models.model_loader import ModelStore, get_model_store
-from schemas.schemas import (
+from isodata_api.models.model_loader import ModelStore, get_model_store
+from isodata_api.schemas.schemas import (
     BatchRequest,
     BatchResponse,
     ClientInput,
@@ -14,7 +16,7 @@ from schemas.schemas import (
     HealthResponse,
     PredictionResponse,
 )
-from services.predictor import run_pipeline
+from isodata_api.services.predictor import run_pipeline
 
 router = APIRouter()
 
@@ -44,7 +46,7 @@ def predict(payload: ClientInput, store: ModelStore = Depends(get_model_store)) 
 @router.post("/batch", response_model=BatchResponse)
 def batch_predict(request: BatchRequest, store: ModelStore = Depends(get_model_store)) -> BatchResponse:
     _ensure_loaded(store)
-    predictions = [run_pipeline(client.model_dump(), store) for client in request.clients]
+    predictions = [PredictionResponse(**run_pipeline(client.model_dump(), store)) for client in request.clients]
     return BatchResponse(predictions=predictions, n_processed=len(predictions))
 
 
@@ -70,9 +72,17 @@ def clusters(store: ModelStore = Depends(get_model_store)) -> List[ClusterProfil
 
 
 @router.get("/metadata")
-def metadata(store: ModelStore = Depends(get_model_store)) -> dict:
+def metadata(request: Request, store: ModelStore = Depends(get_model_store)) -> dict:
     _ensure_loaded(store)
-    return store.metadata or {}
+    base = store.metadata or {}
+    dataset_summary = getattr(request.app.state, "dataset_summary", None)
+    if not isinstance(dataset_summary, dict):
+        dataset_summary = load_dataset_summary()
+        if isinstance(dataset_summary, dict):
+            request.app.state.dataset_summary = dataset_summary
+    if isinstance(dataset_summary, dict):
+        return {**base, **dataset_summary}
+    return base
 
 
 @router.get("/health", response_model=HealthResponse)
