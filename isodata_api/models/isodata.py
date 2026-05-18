@@ -10,12 +10,12 @@ class ISODATA:
 
     def __init__(
         self,
-        k_init: int = 4,
-        max_iter: int = 30,
-        split_std_threshold: float = 0.65,
-        merge_dist_threshold: float = 2.5,
-        min_cluster_size: int = 100,
-        max_clusters: int | None = 10,
+        k_init: int = 5,
+        max_iter: int = 20,
+        split_std_threshold: float = 0.85,
+        merge_dist_threshold: float = 2.0,
+        min_cluster_size: int = 150,
+        max_clusters: int | None = 8,
         random_state: int = 42,
         verbose: bool = True,
     ) -> None:

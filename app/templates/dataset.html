@@ -17,22 +17,24 @@
             </div>
             <p class="text-muted">Drop a CSV dataset here to begin customer segmentation analysis.</p>
             <div class="button-row">
-                <button class="primary-btn">Browse CSV</button>
-                <button class="secondary-btn">Load Demo</button>
+                <button class="primary-btn" type="button" id="browse-csv">Browse CSV</button>
+                <button class="secondary-btn" type="button">Load Demo</button>
             </div>
+            <input id="dataset-file" type="file" accept=".csv" class="hidden-input">
+            <p class="text-muted" id="file-status">No file selected.</p>
         </section>
 
         <section class="glass-card parameter-box">
             <h3>ISODATA Parameters</h3>
             <div class="parameter-row">
                 <span>Min Cluster Size</span>
-                <strong>50</strong>
+                <strong id="param-min-cluster">{{ hyperparams.get("min_cluster_size", "-") }}</strong>
             </div>
             <div class="progress-bar"><span class="progress-fill" style="width: 33%"></span></div>
 
             <div class="parameter-row">
                 <span>Max Variance</span>
-                <strong>0.85</strong>
+                <strong id="param-split">{{ hyperparams.get("split_std_threshold", "-") }}</strong>
             </div>
             <div class="progress-bar"><span class="progress-fill" style="width: 75%"></span></div>
 
@@ -46,19 +48,19 @@
 
     <div class="metrics-grid">
         <div class="metric-card">
-            <h2>8950</h2>
+            <h2 id="metric-rows">{{ n_rows }}</h2>
             <p>Customers</p>
         </div>
         <div class="metric-card">
-            <h2>18</h2>
+            <h2 id="metric-features">{{ n_features }}</h2>
             <p>Features</p>
         </div>
         <div class="metric-card">
-            <h2>314</h2>
+            <h2 id="metric-missing">{{ missing_values }}</h2>
             <p>Missing Values</p>
         </div>
         <div class="metric-card">
-            <h2>0</h2>
+            <h2 id="metric-duplicates">{{ duplicate_rows }}</h2>
             <p>Duplicates</p>
         </div>
     </div>
@@ -79,4 +81,77 @@
     </div>
 
 </main>
+
+<script>
+(() => {
+    const fileInput = document.getElementById("dataset-file");
+    const browseButton = document.getElementById("browse-csv");
+    const status = document.getElementById("file-status");
+    const rowsEl = document.getElementById("metric-rows");
+    const featuresEl = document.getElementById("metric-features");
+    const missingEl = document.getElementById("metric-missing");
+    const duplicatesEl = document.getElementById("metric-duplicates");
+
+    const openPicker = () => fileInput.click();
+
+    browseButton.addEventListener("click", openPicker);
+
+    const uploadSummary = async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/dataset/summary", {
+            method: "POST",
+            body: formData
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            const message = data.detail || "Failed to parse dataset.";
+            throw new Error(message);
+        }
+        return response.json();
+    };
+
+    const applySummary = (summary) => {
+        if (!summary) {
+            return;
+        }
+        if (rowsEl) {
+            rowsEl.textContent = summary.rows ?? "-";
+        }
+        if (featuresEl) {
+            featuresEl.textContent = summary.columns ?? "-";
+        }
+        if (missingEl) {
+            missingEl.textContent = summary.missing_values ?? "-";
+        }
+        if (duplicatesEl) {
+            duplicatesEl.textContent = summary.duplicate_rows ?? "-";
+        }
+    };
+
+    fileInput.addEventListener("change", async () => {
+        if (!fileInput.files || fileInput.files.length === 0) {
+            status.textContent = "No file selected.";
+            return;
+        }
+        const file = fileInput.files[0];
+        status.textContent = `Selected: ${file.name}`;
+        status.style.color = "#94a3c5";
+        try {
+            status.textContent = "Uploading and analyzing...";
+            const summary = await uploadSummary(file);
+            applySummary(summary);
+            status.textContent = `Summary updated for ${file.name}`;
+        } catch (err) {
+            status.textContent = err instanceof Error ? err.message : "Upload failed.";
+            status.style.color = "#ffb4b4";
+        }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upload") === "1") {
+        setTimeout(openPicker, 100);
+    }
+})();
+</script>
 {% endblock %}

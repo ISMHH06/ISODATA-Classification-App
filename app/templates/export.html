@@ -4,7 +4,10 @@
 
 <div class="page-header">
     <h1>Report & Export</h1>
-    <p>Export clustering results and reports.</p>
+    <p>
+        Export clustering results and model artifacts.
+        <span id="export-date"></span>
+    </p>
 </div>
 
 <div class="export-grid">
@@ -12,33 +15,53 @@
     <div class="glass-card">
 
         <h2>Clustered Dataset</h2>
-
-        <button class="primary-btn">
+        <p class="text-muted">Download cluster profiles as CSV.</p>
+        <a class="primary-btn" href="/export/cluster-profiles.csv">
             Download CSV
-        </button>
+        </a>
 
     </div>
 
     <div class="glass-card">
 
-        <h2>PDF Report</h2>
-
-        <button class="primary-btn">
-            Download PDF
-        </button>
+        <h2>Metadata JSON</h2>
+        <p class="text-muted">Download model metadata and metrics.</p>
+        <a class="primary-btn" href="/export/metadata.json">
+            Download JSON
+        </a>
 
     </div>
 
     <div class="glass-card">
 
-        <h2>Charts & Visuals</h2>
-
-        <button class="primary-btn">
-            Export Charts
-        </button>
+        <h2>Model Artifacts</h2>
+        <p class="text-muted">Download the full model export bundle.</p>
+        <a class="primary-btn" href="/export/artifacts.zip">
+            Download ZIP
+        </a>
 
     </div>
 
 </div>
+
+<script>
+(() => {
+    const dateEl = document.getElementById("export-date");
+    const applyDate = (metadata) => {
+        if (!metadata || typeof metadata !== "object") {
+            return;
+        }
+        if (metadata.training_date && dateEl) {
+            const date = metadata.training_date.split("T")[0];
+            dateEl.textContent = `Last trained: ${date}`;
+        }
+    };
+
+    fetch("/api/v1/metadata")
+        .then((response) => response.ok ? response.json() : null)
+        .then(applyDate)
+        .catch(() => null);
+})();
+</script>
 
 {% endblock %}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Tuple
+import math
 import pandas as pd
 
 from models.model_loader import ModelStore
@@ -32,6 +33,8 @@ DROP_COLUMNS = [
     "CASH_ADVANCE_FREQUENCY",
     "PURCHASES_FREQUENCY",
 ]
+
+IMPUTE_COLUMNS = ["CREDIT_LIMIT", "MINIMUM_PAYMENTS"]
 
 EPSILON = 1e-6
 
@@ -71,6 +74,26 @@ def _apply_winsorization(df: pd.DataFrame, winsor_bounds: Dict[str, Any]) -> pd.
     return df
 
 
+def _impute_value(feature: str, store: ModelStore) -> float:
+    if feature in IMPUTE_COLUMNS:
+        if store.imputation_values and feature in store.imputation_values:
+            return float(store.imputation_values[feature])
+        raise ValueError(f"Missing required field: {feature}")
+    raise ValueError(f"Missing required field: {feature}")
+
+
+def _coerce_value(feature: str, value: Any, store: ModelStore) -> float:
+    if value is None:
+        return _impute_value(feature, store)
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid value for {feature}") from exc
+    if math.isnan(number):
+        return _impute_value(feature, store)
+    return number
+
+
 def _segment_size_pct(cluster_id: int, store: ModelStore) -> float:
     if store.cluster_sizes and store.n_samples_train > 0:
         size = store.cluster_sizes.get(cluster_id)
@@ -83,11 +106,18 @@ def run_pipeline(client_data: Dict[str, Any], store: ModelStore) -> Dict[str, An
     if not store.model_loaded:
         raise RuntimeError("Model not loaded")
 
-    missing = [feature for feature in RAW_FEATURES if feature not in client_data]
+    missing = [
+        feature
+        for feature in RAW_FEATURES
+        if feature not in client_data and feature not in IMPUTE_COLUMNS
+    ]
     if missing:
         raise ValueError(f"Missing required field(s): {', '.join(missing)}")
 
-    row = {feature: float(client_data[feature]) for feature in RAW_FEATURES}
+    row = {
+        feature: _coerce_value(feature, client_data.get(feature), store)
+        for feature in RAW_FEATURES
+    }
     df = pd.DataFrame([row], columns=RAW_FEATURES)
 
     if store.winsor_bounds:

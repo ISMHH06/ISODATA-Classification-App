@@ -16,9 +16,9 @@ class ClientInput(BaseModel):
     CASH_ADVANCE_FREQUENCY: float = Field(..., ge=0, le=1)
     CASH_ADVANCE_TRX: int = Field(..., ge=0)
     PURCHASES_TRX: float = Field(..., ge=0)
-    CREDIT_LIMIT: float = Field(..., ge=0)
+    CREDIT_LIMIT: float | None = Field(None, ge=0)
     PAYMENTS: float = Field(..., ge=0)
-    MINIMUM_PAYMENTS: float = Field(..., ge=0)
+    MINIMUM_PAYMENTS: float | None = Field(None, ge=0)
     PRC_FULL_PAYMENT: float = Field(..., ge=0, le=1)
     TENURE: float = Field(..., ge=0)
 

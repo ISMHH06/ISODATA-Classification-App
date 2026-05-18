@@ -16,8 +16,8 @@
             Analyze customer behavior and automatically discover intelligent customer groups.
         </p>
         <div class="hero-buttons">
-            <button class="primary-btn">Upload Dataset</button>
-            <button class="secondary-btn">Try Demo</button>
+            <a class="primary-btn" href="/dataset?upload=1">Upload Dataset</a>
+            <button class="secondary-btn" type="button">Try Demo</button>
         </div>
     </div>
 
@@ -27,19 +27,47 @@
 
     <div class="glass-card">
         <h3>Algorithm</h3>
-        <p>ISODATA</p>
+        <p id="home-algorithm">{{ metadata.get("algorithm", "ISODATA") }}</p>
     </div>
 
     <div class="glass-card">
         <h3>Dataset</h3>
-        <p>CC-GENERAL</p>
+        <p id="home-dataset">{{ metadata.get("dataset", "CC-GENERAL") }}</p>
     </div>
 
     <div class="glass-card">
         <h3>Features</h3>
-        <p>18 Variables</p>
+        <p id="home-features">{{ n_features }} Variables</p>
     </div>
 
 </section>
+
+<script>
+(() => {
+    const algoEl = document.getElementById("home-algorithm");
+    const datasetEl = document.getElementById("home-dataset");
+    const featuresEl = document.getElementById("home-features");
+
+    const update = (metadata) => {
+        if (!metadata || typeof metadata !== "object") {
+            return;
+        }
+        if (metadata.algorithm && algoEl) {
+            algoEl.textContent = metadata.algorithm;
+        }
+        if (metadata.dataset && datasetEl) {
+            datasetEl.textContent = metadata.dataset;
+        }
+        if (metadata.feature_columns && Array.isArray(metadata.feature_columns) && featuresEl) {
+            featuresEl.textContent = `${metadata.feature_columns.length} Variables`;
+        }
+    };
+
+    fetch("/api/v1/metadata")
+        .then((response) => response.ok ? response.json() : null)
+        .then(update)
+        .catch(() => null);
+})();
+</script>
 
 {% endblock %}

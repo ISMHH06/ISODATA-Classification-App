@@ -1,70 +1,70 @@
 {
-  "BALANCE": {
-    "p1": 0.06510059,
-    "p99": 9338.804814000001
-  },
-  "BALANCE_FREQUENCY": {
-    "p1": 0.090909,
-    "p99": 1.0
-  },
-  "PURCHASES": {
-    "p1": 0.0,
-    "p99": 8977.290000000014
-  },
-  "ONEOFF_PURCHASES": {
-    "p1": 0.0,
-    "p99": 6689.898200000005
-  },
-  "INSTALLMENTS_PURCHASES": {
-    "p1": 0.0,
-    "p99": 3886.2405000000003
-  },
-  "CASH_ADVANCE": {
-    "p1": 0.0,
-    "p99": 9588.163356800003
-  },
-  "PURCHASES_FREQUENCY": {
-    "p1": 0.0,
-    "p99": 1.0
-  },
-  "ONEOFF_PURCHASES_FREQUENCY": {
-    "p1": 0.0,
-    "p99": 1.0
-  },
-  "PURCHASES_INSTALLMENTS_FREQUENCY": {
-    "p1": 0.0,
-    "p99": 1.0
-  },
-  "CASH_ADVANCE_FREQUENCY": {
-    "p1": 0.0,
-    "p99": 0.833333
-  },
-  "CASH_ADVANCE_TRX": {
-    "p1": 0.0,
-    "p99": 29.0
-  },
-  "PURCHASES_TRX": {
-    "p1": 0.0,
-    "p99": 116.51000000000022
-  },
-  "CREDIT_LIMIT": {
-    "p1": 500.0,
-    "p99": 17000.0
-  },
-  "PAYMENTS": {
-    "p1": 0.0,
-    "p99": 13608.71554060002
-  },
-  "MINIMUM_PAYMENTS": {
-    "p1": 20.04061276,
-    "p99": 8626.691541090007
-  },
-  "PRC_FULL_PAYMENT": {
-    "p1": 0.0,
-    "p99": 1.0
-  },
-  "TENURE": {
-    "p1": 6.0,
-    "p99": 12.0
-  }
+  "BALANCE": [
+    0.06510059,
+    9338.804814000001
+  ],
+  "BALANCE_FREQUENCY": [
+    0.090909,
+    1.0
+  ],
+  "PURCHASES": [
+    0.0,
+    8977.290000000014
+  ],
+  "ONEOFF_PURCHASES": [
+    0.0,
+    6689.898200000005
+  ],
+  "INSTALLMENTS_PURCHASES": [
+    0.0,
+    3886.2405000000003
+  ],
+  "CASH_ADVANCE": [
+    0.0,
+    9588.163356800003
+  ],
+  "PURCHASES_FREQUENCY": [
+    0.0,
+    1.0
+  ],
+  "ONEOFF_PURCHASES_FREQUENCY": [
+    0.0,
+    1.0
+  ],
+  "PURCHASES_INSTALLMENTS_FREQUENCY": [
+    0.0,
+    1.0
+  ],
+  "CASH_ADVANCE_FREQUENCY": [
+    0.0,
+    0.833333
+  ],
+  "CASH_ADVANCE_TRX": [
+    0.0,
+    29.0
+  ],
+  "PURCHASES_TRX": [
+    0.0,
+    116.51000000000022
+  ],
+  "CREDIT_LIMIT": [
+    500.0,
+    17000.0
+  ],
+  "PAYMENTS": [
+    0.0,
+    13608.71554060002
+  ],
+  "MINIMUM_PAYMENTS": [
+    20.04061276,
+    8626.691541090007
+  ],
+  "PRC_FULL_PAYMENT": [
+    0.0,
+    1.0
+  ],
+  "TENURE": [
+    6.0,
+    12.0
+  ]
 }

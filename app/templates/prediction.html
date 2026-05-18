@@ -13,20 +13,81 @@
 
         <h2>Input Features</h2>
 
-        <form>
-
-            <input type="text" placeholder="Balance">
-
-            <input type="text" placeholder="Purchases">
-
-            <input type="text" placeholder="Credit Limit">
-
-            <input type="text" placeholder="Payments">
-
-            <button class="primary-btn">
+        <form id="prediction-form">
+            <div class="field-grid">
+                <label>
+                    Balance
+                    <input type="number" step="any" name="BALANCE" placeholder="0.0" required>
+                </label>
+                <label>
+                    Balance Frequency
+                    <input type="number" step="any" name="BALANCE_FREQUENCY" placeholder="0.0" required>
+                </label>
+                <label>
+                    Purchases
+                    <input type="number" step="any" name="PURCHASES" placeholder="0.0" required>
+                </label>
+                <label>
+                    One-Off Purchases
+                    <input type="number" step="any" name="ONEOFF_PURCHASES" placeholder="0.0" required>
+                </label>
+                <label>
+                    Installments Purchases
+                    <input type="number" step="any" name="INSTALLMENTS_PURCHASES" placeholder="0.0" required>
+                </label>
+                <label>
+                    Cash Advance
+                    <input type="number" step="any" name="CASH_ADVANCE" placeholder="0.0" required>
+                </label>
+                <label>
+                    Purchases Frequency
+                    <input type="number" step="any" name="PURCHASES_FREQUENCY" placeholder="0.0" required>
+                </label>
+                <label>
+                    One-Off Purchases Frequency
+                    <input type="number" step="any" name="ONEOFF_PURCHASES_FREQUENCY" placeholder="0.0" required>
+                </label>
+                <label>
+                    Purchases Installments Frequency
+                    <input type="number" step="any" name="PURCHASES_INSTALLMENTS_FREQUENCY" placeholder="0.0" required>
+                </label>
+                <label>
+                    Cash Advance Frequency
+                    <input type="number" step="any" name="CASH_ADVANCE_FREQUENCY" placeholder="0.0" required>
+                </label>
+                <label>
+                    Cash Advance Transactions
+                    <input type="number" step="1" name="CASH_ADVANCE_TRX" placeholder="0" required>
+                </label>
+                <label>
+                    Purchases Transactions
+                    <input type="number" step="any" name="PURCHASES_TRX" placeholder="0" required>
+                </label>
+                <label>
+                    Credit Limit (optional)
+                    <input type="number" step="any" name="CREDIT_LIMIT" placeholder="5000">
+                </label>
+                <label>
+                    Payments
+                    <input type="number" step="any" name="PAYMENTS" placeholder="0.0" required>
+                </label>
+                <label>
+                    Minimum Payments (optional)
+                    <input type="number" step="any" name="MINIMUM_PAYMENTS" placeholder="200">
+                </label>
+                <label>
+                    Percent Full Payment
+                    <input type="number" step="any" name="PRC_FULL_PAYMENT" placeholder="0.0" required>
+                </label>
+                <label>
+                    Tenure (months)
+                    <input type="number" step="1" name="TENURE" placeholder="12" required>
+                </label>
+            </div>
+            <button class="primary-btn" type="submit">
                 Predict Cluster
             </button>
-
+            <p id="prediction-error" class="form-error" role="alert"></p>
         </form>
 
     </div>
@@ -35,21 +96,128 @@
 
         <h2>Prediction Result</h2>
 
-        <div class="result-box">
-
-            <h3>Cluster 1</h3>
-
-            <p>Active Buyers</p>
-
-            <p>
-                Recommendation:
-                Offer loyalty rewards and premium services.
-            </p>
-
+        <div class="result-box" id="prediction-result">
+            <p class="text-muted">Submit a customer record to see the predicted segment.</p>
         </div>
 
     </div>
 
 </div>
+
+<script>
+(() => {
+    const form = document.getElementById("prediction-form");
+    const result = document.getElementById("prediction-result");
+    const error = document.getElementById("prediction-error");
+    const requiredFields = [
+        "BALANCE",
+        "BALANCE_FREQUENCY",
+        "PURCHASES",
+        "ONEOFF_PURCHASES",
+        "INSTALLMENTS_PURCHASES",
+        "CASH_ADVANCE",
+        "PURCHASES_FREQUENCY",
+        "ONEOFF_PURCHASES_FREQUENCY",
+        "PURCHASES_INSTALLMENTS_FREQUENCY",
+        "CASH_ADVANCE_FREQUENCY",
+        "CASH_ADVANCE_TRX",
+        "PURCHASES_TRX",
+        "PAYMENTS",
+        "PRC_FULL_PAYMENT",
+        "TENURE"
+    ];
+    const optionalFields = ["CREDIT_LIMIT", "MINIMUM_PAYMENTS"];
+
+    const toNumber = (value) => {
+        if (value === "") {
+            return null;
+        }
+        const num = Number(value);
+        return Number.isNaN(num) ? null : num;
+    };
+
+    const renderProfile = (profile) => {
+        const entries = Object.entries(profile || {});
+        if (!entries.length) {
+            return "<p class=\"text-muted\">No cluster profile data available.</p>";
+        }
+        const rows = entries.slice(0, 6).map(([key, value]) => {
+            return `
+                <div class=\"profile-item\">
+                    <span>${key}</span>
+                    <strong>${value}</strong>
+                </div>
+            `;
+        });
+        return `<div class=\"profile-list\">${rows.join("")}</div>`;
+    };
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        error.textContent = "";
+        result.innerHTML = "";
+
+        const payload = {};
+        const missing = [];
+        const inputs = form.querySelectorAll("input[name]");
+
+        inputs.forEach((input) => {
+            const name = input.name;
+            const value = toNumber(input.value.trim());
+            if (value === null) {
+                if (requiredFields.includes(name)) {
+                    missing.push(name);
+                }
+                return;
+            }
+            payload[name] = value;
+        });
+
+        if (missing.length) {
+            error.textContent = `Missing required fields: ${missing.join(", ")}`;
+            result.innerHTML = "<p class=\"text-muted\">Fill in the missing fields to run a prediction.</p>";
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/v1/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || "Prediction failed.");
+            }
+
+            result.innerHTML = `
+                <div class=\"result-row\">
+                    <span>Segment</span>
+                    <strong>${data.segment_id}</strong>
+                </div>
+                <div class=\"result-row\">
+                    <span>Total clusters</span>
+                    <strong>${data.n_clusters}</strong>
+                </div>
+                <div class=\"result-row\">
+                    <span>Segment size</span>
+                    <strong>${data.segment_size_pct.toFixed(2)}%</strong>
+                </div>
+                <div class=\"result-row\">
+                    <span>PCA coords</span>
+                    <strong>${data.pca_coords.pc1.toFixed(3)}, ${data.pca_coords.pc2.toFixed(3)}</strong>
+                </div>
+                <div>
+                    <h3 class=\"result-title\">Cluster profile</h3>
+                    ${renderProfile(data.cluster_profile)}
+                </div>
+            `;
+        } catch (err) {
+            error.textContent = err instanceof Error ? err.message : "Prediction failed.";
+            result.innerHTML = "<p class=\"text-muted\">Unable to fetch prediction results.</p>";
+        }
+    });
+})();
+</script>
 
 {% endblock %}

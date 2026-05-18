@@ -9,21 +9,21 @@
 <div class="metrics-grid">
 
     <div class="metric-card">
-        <h2>4</h2>
+        <h2 id="metric-clusters">{{ n_clusters }}</h2>
         <p>Clusters</p>
     </div>
     <div class="metric-card">
-        <h2>0.67</h2>
+        <h2 id="metric-silhouette">{{ "%.4f" | format(metrics.get("silhouette_score", 0.0)) }}</h2>
         <p>Silhouette</p>
     </div>
 
     <div class="metric-card">
-        <h2>0.54</h2>
+        <h2 id="metric-db">{{ "%.4f" | format(metrics.get("davies_bouldin_score", 0.0)) }}</h2>
         <p>Davies-Bouldin</p>
     </div>
 
     <div class="metric-card">
-        <h2>3120</h2>
+        <h2 id="metric-ch">{{ "%.2f" | format(metrics.get("calinski_harabasz", 0.0)) }}</h2>
         <p>Calinski</p>
     </div>
 
@@ -31,28 +31,91 @@
 <div class="chart-section">
     <div class="chart-card large-card">
         <h3>PCA Cluster Visualization</h3>
-
-        <img src="{{ url_for('static', path='images/pca.png') }}" alt="PCA">
+        <img
+            src="{{ request.url_for('static', path='images/pca.png') }}"
+            alt="PCA"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        >
+        <div class="placeholder" style="display:none;">
+            Add app/static/images/pca.png to display the chart.
+        </div>
     </div>
 </div>
 
-<div class="cluster-grid">
-
-    <div class="cluster-card">
-        <h3>Cluster 1</h3>
-        <p>Active Buyers</p>
-    </div>
-
-    <div class="cluster-card">
-        <h3>Cluster 2</h3>
-        <p>Low Engagement</p>
-    </div>
-
-    <div class="cluster-card">
-        <h3>Cluster 3</h3>
-        <p>Frequent Users</p>
-    </div>
-
+<div class="cluster-grid" id="cluster-grid">
+    {% if clusters %}
+        {% for cluster in clusters %}
+            <div class="cluster-card">
+                <h3>Cluster {{ cluster.id }}</h3>
+                <p>{{ cluster.size }} clients ({{ "%.1f" | format(cluster.pct) }}%)</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="cluster-card">
+            <h3>No clusters loaded</h3>
+            <p>Train the model to view cluster distribution.</p>
+        </div>
+    {% endif %}
 </div>
+
+<script>
+(() => {
+    const clusterEl = document.getElementById("metric-clusters");
+    const silEl = document.getElementById("metric-silhouette");
+    const dbEl = document.getElementById("metric-db");
+    const chEl = document.getElementById("metric-ch");
+    const gridEl = document.getElementById("cluster-grid");
+
+    const updateMetrics = (metadata) => {
+        if (!metadata || typeof metadata !== "object") {
+            return;
+        }
+        const metrics = metadata.metrics || {};
+        if (clusterEl && metadata.n_clusters_final) {
+            clusterEl.textContent = metadata.n_clusters_final;
+        }
+        if (silEl && typeof metrics.silhouette_score === "number") {
+            silEl.textContent = metrics.silhouette_score.toFixed(4);
+        }
+        if (dbEl && typeof metrics.davies_bouldin_score === "number") {
+            dbEl.textContent = metrics.davies_bouldin_score.toFixed(4);
+        }
+        if (chEl && typeof metrics.calinski_harabasz === "number") {
+            chEl.textContent = metrics.calinski_harabasz.toFixed(2);
+        }
+    };
+
+    const updateClusters = (clusters) => {
+        if (!gridEl || !Array.isArray(clusters)) {
+            return;
+        }
+        if (clusters.length === 0) {
+            gridEl.innerHTML = "<div class=\"cluster-card\"><h3>No clusters loaded</h3><p>Train the model to view cluster distribution.</p></div>";
+            return;
+        }
+        const cards = clusters.map((cluster) => {
+            const pct = typeof cluster.pct_portfolio === "number" ? cluster.pct_portfolio.toFixed(1) : "0.0";
+            const size = cluster.n_clients_train ?? 0;
+            return `
+                <div class=\"cluster-card\">
+                    <h3>Cluster ${cluster.cluster_id}</h3>
+                    <p>${size} clients (${pct}%)</p>
+                </div>
+            `;
+        });
+        gridEl.innerHTML = cards.join("");
+    };
+
+    fetch("/api/v1/metadata")
+        .then((response) => response.ok ? response.json() : null)
+        .then(updateMetrics)
+        .catch(() => null);
+
+    fetch("/api/v1/clusters")
+        .then((response) => response.ok ? response.json() : [])
+        .then(updateClusters)
+        .catch(() => null);
+})();
+</script>
 
 {% endblock %}

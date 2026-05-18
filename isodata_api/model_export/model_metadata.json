@@ -1,7 +1,7 @@
 {
   "model_name": "ISODATA Segmentation — Credit Card Customers",
   "version": "2.0.0",
-  "training_date": "2026-05-17T20:45:23.897799",
+  "training_date": "2026-05-18T18:28:26.103437",
   "dataset": "CC-GENERAL.csv",
   "n_samples_train": 8950,
   "n_features": 11,
@@ -26,39 +26,29 @@
   ],
   "algorithm": "ISODATA",
   "hyperparameters": {
-    "k_init": 8,
-    "max_iter": 30,
-    "split_std_threshold": 1.15,
-    "merge_dist_threshold": 0.55,
-    "min_cluster_size": 30,
+    "k_init": 5,
+    "max_iter": 20,
+    "split_std_threshold": 0.85,
+    "merge_dist_threshold": 2.0,
+    "min_cluster_size": 150,
     "random_state": 42
   },
   "n_clusters_final": 8,
   "metrics": {
-    "silhouette_score": 0.2058,
-    "davies_bouldin_score": 1.5836,
-    "calinski_harabasz": 947.63
+    "silhouette_score": 0.2183,
+    "davies_bouldin_score": 1.4652,
+    "calinski_harabasz": 975.55
   },
   "baseline_kmeans": {
-    "n_clusters": 3,
-    "silhouette_score": 0.2872,
-    "davies_bouldin_score": 1.5179,
-    "calinski_harabasz": 1603.48
+    "n_clusters": 8,
+    "silhouette_score": 0.2043,
+    "davies_bouldin_score": 1.4187,
+    "calinski_harabasz": 1262.78
   },
   "clustering_space": "PCA 11D (92.3% variance)",
   "preprocessing": {
     "imputation": "median (CREDIT_LIMIT, MINIMUM_PAYMENTS)",
     "outliers": "winsorization P1-P99",
     "scaling": "StandardScaler (mu=0, sigma=1)"
-  },
-  "cluster_sizes": {
-    "0": 662,
-    "1": 939,
-    "2": 1172,
-    "3": 176,
-    "4": 244,
-    "5": 980,
-    "6": 4178,
-    "7": 599
   }
 }
