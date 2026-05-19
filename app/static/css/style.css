@@ -889,9 +889,3 @@ body::before{
 .result-box{
     margin-top:20px;
 }
-
-.export-grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:20px;
-}

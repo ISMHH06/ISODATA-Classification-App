@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import dashboard, dataset, export, home, prediction
+from app.routes import dashboard, dataset, home, prediction
 from isodata_api.models.model_loader import load_model_store
 from isodata_api.routers.predict import router as predict_router
 
@@ -46,6 +46,5 @@ app.include_router(home.router)
 app.include_router(dataset.router)
 app.include_router(dashboard.router)
 app.include_router(prediction.router)
-app.include_router(export.router)
 
 app.include_router(predict_router, prefix="/api/v1", tags=["predict"])

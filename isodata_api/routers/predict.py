@@ -77,6 +77,9 @@ def clusters(store: ModelStore = Depends(get_model_store)) -> List[ClusterProfil
 @router.get("/visualization", response_model=None)
 def visualization(request: Request, sample: int | None = None, store: ModelStore = Depends(get_model_store)):
     _ensure_loaded(store)
+    iso_model = store.iso_model
+    if iso_model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
     dataset_summary = getattr(request.app.state, "dataset_summary", None)
     if not isinstance(dataset_summary, dict):
         dataset_summary = load_dataset_summary()
@@ -105,7 +108,7 @@ def visualization(request: Request, sample: int | None = None, store: ModelStore
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    labels = store.iso_model.predict(cluster_space)
+    labels = iso_model.predict(cluster_space)
     n_points = int(cluster_space.shape[0])
 
     if n_points < 3:
