@@ -28,6 +28,11 @@ class PcaCoords(BaseModel):
     pc2: float
 
 
+class EmbedCoords(BaseModel):
+    x: float
+    y: float
+
+
 class PredictionResponse(BaseModel):
     segment_id: int
     n_clusters: int
@@ -41,6 +46,7 @@ class ClusterProfile(BaseModel):
     n_clients_train: int
     pct_portfolio: float
     profile: Dict[str, float]
+    tsne_coords: EmbedCoords | None = None
 
 
 class BatchRequest(BaseModel):

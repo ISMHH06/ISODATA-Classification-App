@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <div class="dashboard-header">
     <h1>Model Performance Dashboard</h1>
@@ -29,16 +30,15 @@
 
 </div>
 <div class="chart-section">
-    <div class="chart-card large-card">
-        <h3>PCA Cluster Visualization</h3>
-        <img
-            src="{{ request.url_for('static', path='images/pca.png') }}"
-            alt="PCA"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-        >
-        <div class="placeholder" style="display:none;">
-            Add app/static/images/pca.png to display the chart.
-        </div>
+    <div class="chart-card">
+        <h3>ISODATA t-SNE Clusters</h3>
+        <div id="dashboard-tsne" class="chart-canvas"></div>
+        <div class="placeholder" id="tsne-placeholder">No visualization data yet.</div>
+    </div>
+    <div class="chart-card">
+        <h3>Cluster Distribution</h3>
+        <div id="dashboard-dist" class="chart-canvas"></div>
+        <div class="placeholder" id="dist-placeholder">No distribution data yet.</div>
     </div>
 </div>
 
@@ -58,6 +58,22 @@
     {% endif %}
 </div>
 
+<div class="dashboard-section">
+    <h2 class="section-title">Last Prediction Snapshot</h2>
+    <div class="result-summary" id="prediction-summary"></div>
+    <p class="text-muted" id="prediction-empty">Run a prediction to see the latest result.</p>
+</div>
+
+<div class="dashboard-section">
+    <h2 class="section-title">ISODATA Metrics</h2>
+    <div class="result-summary" id="metrics-summary"></div>
+</div>
+
+<div class="dashboard-section">
+    <h2 class="section-title">Cluster Profiles (Top Features)</h2>
+    <div class="cluster-profile-grid" id="cluster-profiles"></div>
+</div>
+
 <script>
 (() => {
     const clusterEl = document.getElementById("metric-clusters");
@@ -65,6 +81,74 @@
     const dbEl = document.getElementById("metric-db");
     const chEl = document.getElementById("metric-ch");
     const gridEl = document.getElementById("cluster-grid");
+    const tsneEl = document.getElementById("dashboard-tsne");
+    const distEl = document.getElementById("dashboard-dist");
+    const tsnePlaceholder = document.getElementById("tsne-placeholder");
+    const distPlaceholder = document.getElementById("dist-placeholder");
+    const predictionSummaryEl = document.getElementById("prediction-summary");
+    const predictionEmptyEl = document.getElementById("prediction-empty");
+    const metricsSummaryEl = document.getElementById("metrics-summary");
+    const profilesEl = document.getElementById("cluster-profiles");
+
+    const CLUSTER_COLORS = [
+        "#E63946",
+        "#2196F3",
+        "#4CAF50",
+        "#FF9800",
+        "#9C27B0",
+        "#00BCD4",
+        "#795548",
+        "#607D8B",
+        "#F44336",
+        "#3F51B5"
+    ];
+
+    const safeJson = async (response) => {
+        const text = await response.text();
+        if (!text) {
+            return null;
+        }
+        try {
+            return JSON.parse(text);
+        } catch (err) {
+            return null;
+        }
+    };
+
+    const hexToRgba = (hex, alpha) => {
+        const sanitized = hex.replace("#", "");
+        const bigint = parseInt(sanitized, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const convexHull = (points) => {
+        if (points.length < 3) {
+            return null;
+        }
+        const pts = points.slice().sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
+        const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+        const lower = [];
+        for (const p of pts) {
+            while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+                lower.pop();
+            }
+            lower.push(p);
+        }
+        const upper = [];
+        for (let i = pts.length - 1; i >= 0; i -= 1) {
+            const p = pts[i];
+            while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+                upper.pop();
+            }
+            upper.push(p);
+        }
+        upper.pop();
+        lower.pop();
+        return lower.concat(upper);
+    };
 
     const updateMetrics = (metadata) => {
         if (!metadata || typeof metadata !== "object") {
@@ -85,7 +169,108 @@
         }
     };
 
-    const updateClusters = (clusters) => {
+    const computeSegmentSize = (clusterSizes, segmentId, fallback) => {
+        if (!clusterSizes || segmentId === undefined || segmentId === null) {
+            return fallback || 0;
+        }
+        const total = Object.values(clusterSizes).reduce((sum, value) => sum + value, 0);
+        if (!total) {
+            return fallback || 0;
+        }
+        const count = clusterSizes[segmentId] || 0;
+        return (count / total) * 100;
+    };
+
+    const loadPrediction = () => {
+        try {
+            const raw = localStorage.getItem("predictionResult:v1");
+            return raw ? JSON.parse(raw) : null;
+        } catch (err) {
+            return null;
+        }
+    };
+
+    const renderPredictionSummary = (payload, clusterSizes) => {
+        if (!predictionSummaryEl || !predictionEmptyEl) {
+            return;
+        }
+        if (!payload || !payload.data) {
+            predictionSummaryEl.innerHTML = "";
+            predictionEmptyEl.style.display = "block";
+            return;
+        }
+        const data = payload.data;
+        const segmentSize = computeSegmentSize(clusterSizes, data.segment_id, data.segment_size_pct);
+        const items = [
+            { label: "Predicted Segment ID", value: data.segment_id },
+            { label: "Segment Size", value: `${segmentSize.toFixed(1)}%` },
+            { label: "PCA coords", value: `${data.pca_coords.pc1.toFixed(3)}, ${data.pca_coords.pc2.toFixed(3)}` }
+        ];
+        predictionSummaryEl.innerHTML = items
+            .map((item) => `
+                <div class="summary-item">
+                    <span>${item.label}</span>
+                    <strong>${item.value}</strong>
+                </div>
+            `)
+            .join("");
+        predictionEmptyEl.style.display = "none";
+    };
+
+    const renderMetricsSummary = (metadata) => {
+        if (!metricsSummaryEl) {
+            return;
+        }
+        const metrics = metadata.metrics || {};
+        const items = [
+            { label: "Silhouette Score", value: metrics.silhouette_score?.toFixed(4) ?? "-" },
+            { label: "Davies-Bouldin", value: metrics.davies_bouldin_score?.toFixed(4) ?? "-" },
+            { label: "Calinski-Harabasz", value: metrics.calinski_harabasz?.toFixed(2) ?? "-" }
+        ];
+        metricsSummaryEl.innerHTML = items
+            .map((item) => `
+                <div class="summary-item">
+                    <span>${item.label}</span>
+                    <strong>${item.value}</strong>
+                </div>
+            `)
+            .join("");
+    };
+
+    const renderClusterProfiles = (clusters, highlightId) => {
+        if (!profilesEl) {
+            return;
+        }
+        if (!Array.isArray(clusters) || clusters.length === 0) {
+            profilesEl.innerHTML = "<div class=\"cluster-profile-card\"><p class=\"text-muted\">No cluster profiles available.</p></div>";
+            return;
+        }
+        const cards = clusters
+            .sort((a, b) => (a.cluster_id ?? 0) - (b.cluster_id ?? 0))
+            .map((cluster) => {
+                const entries = Object.entries(cluster.profile || {})
+                    .sort((a, b) => Number(b[1]) - Number(a[1]))
+                    .slice(0, 4);
+                const list = entries
+                    .map(([key, value]) => `
+                        <div class="cluster-profile-item">
+                            <span>${key.replace(/_/g, " ")}</span>
+                            <strong>${Number(value).toFixed(2)}</strong>
+                        </div>
+                    `)
+                    .join("");
+                const activeClass = cluster.cluster_id === highlightId ? "active" : "";
+                return `
+                    <div class="cluster-profile-card ${activeClass}">
+                        <h4>Cluster ${cluster.cluster_id}</h4>
+                        <div class="cluster-profile-list">${list}</div>
+                    </div>
+                `;
+            });
+        profilesEl.innerHTML = cards.join("");
+    };
+
+    const updateClusters = (clusters, clusterSizes) => {
         if (!gridEl || !Array.isArray(clusters)) {
             return;
         }
@@ -93,9 +278,17 @@
             gridEl.innerHTML = "<div class=\"cluster-card\"><h3>No clusters loaded</h3><p>Train the model to view cluster distribution.</p></div>";
             return;
         }
-        const cards = clusters.map((cluster) => {
-            const pct = typeof cluster.pct_portfolio === "number" ? cluster.pct_portfolio.toFixed(1) : "0.0";
-            const size = cluster.n_clients_train ?? 0;
+        const sizes = clusterSizes || {};
+        const total = Object.values(sizes).reduce((sum, value) => sum + value, 0);
+        const cards = clusters
+            .sort((a, b) => (a.cluster_id ?? 0) - (b.cluster_id ?? 0))
+            .map((cluster) => {
+                let size = cluster.n_clients_train ?? 0;
+                let pct = typeof cluster.pct_portfolio === "number" ? cluster.pct_portfolio.toFixed(1) : "0.0";
+                if (total > 0 && sizes[cluster.cluster_id] !== undefined) {
+                    size = sizes[cluster.cluster_id];
+                    pct = ((size / total) * 100).toFixed(1);
+                }
             return `
                 <div class=\"cluster-card\">
                     <h3>Cluster ${cluster.cluster_id}</h3>
@@ -106,14 +299,145 @@
         gridEl.innerHTML = cards.join("");
     };
 
-    fetch("/api/v1/metadata")
-        .then((response) => response.ok ? response.json() : null)
-        .then(updateMetrics)
-        .catch(() => null);
+    const renderTsne = (points) => {
+        if (!tsneEl) {
+            return;
+        }
+        if (!points || points.length === 0) {
+            tsnePlaceholder.style.display = "flex";
+            Plotly.react("dashboard-tsne", [], { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)" });
+            return;
+        }
 
-    fetch("/api/v1/clusters")
-        .then((response) => response.ok ? response.json() : [])
-        .then(updateClusters)
+        tsnePlaceholder.style.display = "none";
+        const grouped = points.reduce((acc, point) => {
+            const key = Number(point.cluster_id);
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push({ x: point.x, y: point.y });
+            return acc;
+        }, {});
+
+        const clusterIds = Object.keys(grouped).map((id) => Number(id)).sort((a, b) => a - b);
+        const markerSize = points.length > 6000 ? 3 : points.length > 3000 ? 4 : 6;
+        const traces = [];
+
+        clusterIds.forEach((clusterId, idx) => {
+            const pts = grouped[clusterId];
+            const color = CLUSTER_COLORS[idx % CLUSTER_COLORS.length];
+            const hull = convexHull(pts);
+
+            if (hull && hull.length >= 3) {
+                traces.push({
+                    x: hull.map((p) => p.x),
+                    y: hull.map((p) => p.y),
+                    mode: "lines",
+                    type: "scatter",
+                    line: { color, width: 1.2 },
+                    fill: "toself",
+                    fillcolor: hexToRgba(color, 0.08),
+                    hoverinfo: "skip",
+                    showlegend: false
+                });
+            }
+
+            traces.push({
+                x: pts.map((p) => p.x),
+                y: pts.map((p) => p.y),
+                mode: "markers",
+                type: "scatter",
+                name: `C${clusterId}  n=${pts.length}`,
+                marker: {
+                    size: markerSize,
+                    color,
+                    opacity: 0.55
+                },
+                hovertemplate: `Cluster ${clusterId}<extra></extra>`
+            });
+        });
+
+        Plotly.react(
+            "dashboard-tsne",
+            traces,
+            {
+                margin: { t: 30, r: 10, l: 20, b: 20 },
+                paper_bgcolor: "rgba(0,0,0,0)",
+                plot_bgcolor: "rgba(0,0,0,0)",
+                font: { color: "#e5e7eb" },
+                showlegend: true,
+                legend: { orientation: "h", x: 0, y: 1.12, font: { size: 9 } },
+                xaxis: { showgrid: false, zeroline: false, showticklabels: false, title: "t-SNE dimension 1" },
+                yaxis: { showgrid: false, zeroline: false, showticklabels: false, title: "t-SNE dimension 2" }
+            },
+            { displayModeBar: false, responsive: true }
+        );
+    };
+
+    const renderDistribution = (clusterSizes) => {
+        if (!distEl) {
+            return;
+        }
+        if (!clusterSizes || Object.keys(clusterSizes).length === 0) {
+            distPlaceholder.style.display = "flex";
+            Plotly.react("dashboard-dist", [], { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)" });
+            return;
+        }
+
+        distPlaceholder.style.display = "none";
+        const ids = Object.keys(clusterSizes).map((key) => Number(key)).sort((a, b) => a - b);
+        const sizes = ids.map((id) => clusterSizes[id] || 0);
+        const total = sizes.reduce((sum, value) => sum + value, 0) || 1;
+        const colors = ids.map((_, idx) => CLUSTER_COLORS[idx % CLUSTER_COLORS.length]);
+        const percentages = sizes.map((value) => `${((value / total) * 100).toFixed(1)}%`);
+
+        Plotly.react(
+            "dashboard-dist",
+            [
+                {
+                    x: ids,
+                    y: sizes,
+                    type: "bar",
+                    marker: { color: colors },
+                    text: percentages,
+                    textposition: "auto",
+                    hovertemplate: "Cluster %{x}<br>%{y} clients<extra></extra>"
+                }
+            ],
+            {
+                margin: { t: 20, r: 10, l: 40, b: 35 },
+                paper_bgcolor: "rgba(0,0,0,0)",
+                plot_bgcolor: "rgba(0,0,0,0)",
+                font: { color: "#e5e7eb" },
+                xaxis: { title: "Cluster", tickmode: "linear" },
+                yaxis: { title: "Clients" }
+            },
+            { displayModeBar: false, responsive: true }
+        );
+    };
+
+    Promise.all([
+        fetch("/api/v1/metadata"),
+        fetch("/api/v1/clusters"),
+        fetch("/api/v1/visualization")
+    ])
+        .then(async ([metaRes, clustersRes, vizRes]) => {
+            const meta = metaRes.ok ? await safeJson(metaRes) : null;
+            const clusters = clustersRes.ok ? await safeJson(clustersRes) : [];
+            const visualization = vizRes.ok ? await safeJson(vizRes) : null;
+
+            updateMetrics(meta || {});
+            renderMetricsSummary(meta || {});
+
+            const clusterSizes = visualization && visualization.cluster_sizes ? visualization.cluster_sizes : null;
+            updateClusters(Array.isArray(clusters) ? clusters : [], clusterSizes);
+            renderTsne(visualization && Array.isArray(visualization.points) ? visualization.points : []);
+            renderDistribution(clusterSizes);
+
+            const prediction = loadPrediction();
+            renderPredictionSummary(prediction, clusterSizes);
+            renderClusterProfiles(Array.isArray(clusters) ? clusters : [], prediction?.data?.segment_id);
+        })
         .catch(() => null);
 })();
 </script>

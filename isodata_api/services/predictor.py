@@ -151,13 +151,12 @@ def run_pipeline(client_data: Dict[str, Any], store: ModelStore) -> Dict[str, An
         raise RuntimeError("Feature columns not loaded")
 
     ordered = df[feature_columns]
-    features = ordered.to_numpy()
-
-    scaled = scaler.transform(features)
-    cluster_space = pca_cluster.transform(scaled)
+    scaled = scaler.transform(ordered)
+    scaled_df = pd.DataFrame(scaled, columns=ordered.columns, index=ordered.index)
+    cluster_space = pca_cluster.transform(scaled_df)
     cluster_id = int(iso_model.predict(cluster_space)[0])
 
-    coords = pca_2d.transform(scaled)[0]
+    coords = pca_2d.transform(scaled_df)[0]
     cluster_profiles = store.cluster_profiles or {}
     profile = cluster_profiles.get(str(cluster_id), {})
 
@@ -168,3 +167,51 @@ def run_pipeline(client_data: Dict[str, Any], store: ModelStore) -> Dict[str, An
         "cluster_profile": profile,
         "segment_size_pct": _segment_size_pct(cluster_id, store),
     }
+
+
+def build_cluster_space(df_raw: pd.DataFrame, store: ModelStore) -> Any:
+    if not store.model_loaded:
+        raise RuntimeError("Model not loaded")
+    if store.scaler is None or store.pca_cluster is None:
+        raise RuntimeError("Model artifacts not loaded")
+
+    missing = [feature for feature in RAW_FEATURES if feature not in df_raw.columns]
+    if missing:
+        raise ValueError(f"Missing required field(s): {', '.join(missing)}")
+
+    df = df_raw[RAW_FEATURES].copy()
+    for column in RAW_FEATURES:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
+
+    for column in IMPUTE_COLUMNS:
+        if column in df.columns:
+            fill_value = None
+            if store.imputation_values and column in store.imputation_values:
+                fill_value = float(store.imputation_values[column])
+            else:
+                series = df[column].dropna()
+                fill_value = float(series.median()) if not series.empty else 0.0
+            df[column] = df[column].fillna(fill_value)
+
+    df = df.fillna(0)
+
+    if store.winsor_bounds:
+        df = _apply_winsorization(df, store.winsor_bounds)
+
+    df["TOTAL_ONEOFF_RATIO"] = df["ONEOFF_PURCHASES"] / (df["PURCHASES"] + EPSILON)
+    df["INSTALLMENT_DOMINANCE"] = (
+        df["PURCHASES_INSTALLMENTS_FREQUENCY"] / (df["PURCHASES_FREQUENCY"] + EPSILON)
+    )
+    df["CASH_ADVANCE_INTENSITY"] = df["CASH_ADVANCE"] / (df["CASH_ADVANCE_FREQUENCY"] + EPSILON)
+    df["PAYMENT_TO_CREDIT_RATIO"] = df["PAYMENTS"] / (df["CREDIT_LIMIT"] + EPSILON)
+    df["PAYMENT_TO_BALANCE_RATIO"] = df["PAYMENTS"] / (df["BALANCE"] + EPSILON)
+
+    df = df.drop(columns=DROP_COLUMNS)
+
+    if not store.feature_columns:
+        raise RuntimeError("Feature columns not loaded")
+
+    ordered = df[store.feature_columns]
+    scaled = store.scaler.transform(ordered)
+    scaled_df = pd.DataFrame(scaled, columns=ordered.columns, index=ordered.index)
+    return store.pca_cluster.transform(scaled_df)
